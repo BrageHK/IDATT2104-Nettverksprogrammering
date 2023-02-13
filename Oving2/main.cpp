@@ -80,7 +80,7 @@ int main() {
     event_loop.start(); // Create 1 internal thread
     worker_threads.post([] {
         // sleep for 1 second
-        sleep(1);
+        sleep(0);
         print("1");
     });
 
