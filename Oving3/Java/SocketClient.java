@@ -27,9 +27,9 @@ class SocketClient {
     while (!enLinje.equals("")) {
       printWriter.println(enLinje);  // sender teksten til tjeneren
       String respons = bufferedReader.readLine();  // mottar respons fra tjeneren
-      System.out.println("Fra tjenerprogrammet: " + respons);
+      System.out.println("From server: " + respons);
       respons = bufferedReader.readLine();  // mottar respons fra tjeneren
-      System.out.println("Fra tjenerprogrammet: " + respons);
+      System.out.println("From server: " + respons);
       enLinje = sc.nextLine();
     }
 

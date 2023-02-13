@@ -6,7 +6,55 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 
-public class WebServer {
+public class WebServer implements Runnable{
+
+    Socket socket;
+    PrintWriter writer;
+    private InputStreamReader inputStreamReader;
+    private BufferedReader reader;
+
+    public WebServer(Socket forbindelse) throws IOException{
+        this.socket = forbindelse;
+        inputStreamReader = new InputStreamReader(forbindelse.getInputStream());
+        reader = new BufferedReader(inputStreamReader);
+        writer = new PrintWriter(forbindelse.getOutputStream(), true);
+    }
+
+    @Override
+    public void run() {
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter(socket.getOutputStream(), true);
+
+            writer.println("HTTP/1.0 200 OK");
+            writer.println("Content-Type: text/html; charset=utf-8");
+            writer.println("");
+            writer.println("<!DOCTYPE html>");
+            writer.println("<html>");
+            writer.println("<body>");
+            writer.println("<img src=\"https://avatars.githubusercontent.com/u/73225892?v=4\" >");
+            writer.println("<h1>Yo! Hvem er dette???</h1>");
+            writer.println("<h3>Headers:</h3>");
+            writer.println("<ul>");
+
+            String enLinje = null;  // mottar en linje med tekst
+            enLinje = reader.readLine();
+            while (enLinje != null && !enLinje.isEmpty()){
+                writer.println("<li>" + enLinje + "</li>");
+                enLinje = reader.readLine();
+            }
+
+            writer.println("</ul>");
+            writer.println("</body>");
+            writer.println("</html>");
+            writer.flush();
+
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void main(String[] args) throws IOException {
         final int PORTNR = 80;
 
@@ -15,109 +63,14 @@ public class WebServer {
         ArrayList<Thread> threads = new ArrayList<>();
         while (true){
             Socket forbindelse = tjener.accept();  // venter inntil en klient kobler til
-            PrintWriter writer = new PrintWriter(forbindelse.getOutputStream(), true);
-            CalculatorWeb calculator = new CalculatorWeb(forbindelse);
-            Thread thread = new Thread(calculator);
-
-            String[] headers;
-            headers = calculator.getHeaders();
-
+            System.out.println("En klient har koblet seg til.");
+            WebServer webServer = new WebServer(forbindelse);
+            Thread thread = new Thread(webServer);
             thread.start();
             threads.add(thread);
-            writer.println("HTTP/1.0 200 OK");
-            writer.println("Content-Type: text/html; charset=utf-8");
-            writer.println("");
-            writer.println("<!DOCTYPE html>");
-            writer.println("<html>");
-            writer.println("<body>");
-            writer.println("<h1>Welcome to hell</h1>");
-            writer.println("<h3>Headers:</h3>");
-            writer.println("<ul>");
-            for (String header : headers) {
-                if(header != null)
-                    writer.println("<li>" + header + "</li>");
-            }
-            writer.println("</ul>");
-            writer.println("</body>");
-            writer.println("</html>");
-            writer.flush();
-            System.out.println("En klient har koblet seg til.");
-            forbindelse.close();
         }
     }
 }
 
-class CalculatorWeb implements Runnable{
 
-    private Socket socket;
-    private InputStreamReader leseforbindelse;
-    private BufferedReader reader;
-    private PrintWriter skriveren;
 
-    public CalculatorWeb(Socket socket) throws IOException{
-        this.socket = socket;
-        leseforbindelse = new InputStreamReader(socket.getInputStream());
-        reader = new BufferedReader(leseforbindelse);
-        skriveren = new PrintWriter(socket.getOutputStream(), true);
-    }
-
-    public String[] getHeaders() throws IOException {
-        String[] headers = new String[255];
-        int i = 0;
-        String enLinje = reader.readLine();  // mottar en linje med tekst
-        while (enLinje != null && !enLinje.isBlank()) {
-            headers[i] = enLinje;
-            i++;
-            enLinje = reader.readLine();
-        }
-        return headers;
-    }
-
-    private double calculate(String equation){
-        String[] parts = equation.split(" ");
-        double a = Double.parseDouble(parts[0]);
-        double b = Double.parseDouble(parts[2]);
-        String operator = parts[1];
-        double result = 0;
-        switch(operator){
-            case "+":
-                result = a + b;
-                break;
-            case "-":
-                result = a - b;
-                break;
-            case "*":
-                result = a * b;
-                break;
-            case "/":
-                result = a / b;
-                break;
-        }
-        return result;
-    }
-
-    @Override
-    public void run() {
-
-        skriveren.println("Hei, du har kontakt med tjenersiden!");
-        skriveren.println("Skriv hva du vil, saa skal jeg gjenta det, avslutt med linjeskift.");
-
-        try {
-            /* Mottar data fra klienten */
-            String enLinje = reader.readLine();  // mottar en linje med tekst
-            while (enLinje != null) {  // forbindelsen på klientsiden er lukket
-                System.out.println("En klient skrev: " + enLinje);
-                skriveren.println("Received equation: " + enLinje);  // sender svar til klienten
-                skriveren.println("Answer is: " + calculate(enLinje));
-                enLinje = reader.readLine();
-            }
-
-            /* Lukker forbindelsen */
-            reader.close();
-            skriveren.close();
-            socket.close();
-        } catch (IOException e) {
-
-        }
-    }
-}

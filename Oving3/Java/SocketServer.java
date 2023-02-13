@@ -7,11 +7,11 @@ class SocketServer {
     final int PORTNR = 1250;
 
     ServerSocket tjener = new ServerSocket(PORTNR);
-    System.out.println("Logg for tjenersiden. Nå venter vi...");
+    System.out.println("Server is running");
     ArrayList<Thread> threads = new ArrayList<>();
     while (true){
         Socket forbindelse = tjener.accept();  // venter inntil en klient kobler til
-        System.out.println("En klient har koblet seg til.");
+        System.out.println("A client has connected");
         Calculator calculator = new Calculator(forbindelse);
         Thread thread = new Thread(calculator);
         thread.start();
@@ -24,15 +24,15 @@ class SocketServer {
 class Calculator implements Runnable{
 
     Socket socket;
-    InputStreamReader leseforbindelse;
-    BufferedReader leseren;
-    PrintWriter skriveren;
+    InputStreamReader inputStreamReader;
+    BufferedReader reader;
+    PrintWriter printWriter;
 
     public Calculator(Socket socket) throws IOException{
       this.socket = socket;
-      leseforbindelse = new InputStreamReader(socket.getInputStream());
-      leseren = new BufferedReader(leseforbindelse);
-      skriveren = new PrintWriter(socket.getOutputStream(), true);
+      inputStreamReader = new InputStreamReader(socket.getInputStream());
+      reader = new BufferedReader(inputStreamReader);
+      printWriter = new PrintWriter(socket.getOutputStream(), true);
     }
 
     private double calculate(String equation){
@@ -61,24 +61,24 @@ class Calculator implements Runnable{
     @Override
     public void run() {
 
-      skriveren.println("Hei, du har kontakt med tjenersiden!");
-      skriveren.println("Skriv hva du vil, så skal jeg gjenta det, avslutt med linjeskift.");
+      printWriter.println("Welcome to the calculator server! Please enter an equation in the format: a + b");
+      printWriter.println("You can use +, -, * and / as operators.");
 
       try {
         /* Mottar data fra klienten */
-        String enLinje = leseren.readLine();  // mottar en linje med tekst
-        while (enLinje != null) {  // forbindelsen på klientsiden er lukket
-          System.out.println("En klient skrev: " + enLinje);
-          skriveren.println("Received equation: " + enLinje);  // sender svar til klienten
-          skriveren.println("Answer is: " + calculate(enLinje));
-          enLinje = leseren.readLine();
+        String readLine = reader.readLine();  // mottar en linje med tekst
+        while (readLine != null) {  // forbindelsen på klientsiden er lukket
+          System.out.println("A Client Wrote" + readLine);
+          printWriter.println("Received equation: " + readLine);  // sender svar til klienten
+          printWriter.println("Answer is: " + calculate(readLine));
+          readLine = reader.readLine();
         }
 
         /* Lukker forbindelsen */
-        leseren.close();
-        skriveren.close();
+        reader.close();
+        printWriter.close();
         socket.close();
-      } catch (IOException e) {
+      } catch (IOException ignored) {
 
       }
     }
